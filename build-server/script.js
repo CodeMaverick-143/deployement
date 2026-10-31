@@ -2,8 +2,18 @@ const { exec } = require("child_process")
 const path = require("path")
 const fs = require("fs")
 const mime = require('mime-types')
+const Redis = require('ioredis')
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3")
 
+const publisher = new Redis(
+    process.env.REDIS_URL?.startsWith("redis")
+        ? process.env.REDIS_URL
+        : `rediss://default:${process.env.REDIS_TOKEN}@${process.env.REDIS_URL ? process.env.REDIS_URL.replace(/^https?:\/\//, "") : ""}:6379`
+)
+
+function publishLog(log){
+    publisher.publish(`log:${PROJECT_ID}`, JSON.stringify({log}))
+}
 
 const s3Client = new S3Client({
     region: process.env.AWS_REGION || "ap-south-1",
@@ -17,6 +27,7 @@ const PROJECT_ID = process.env.PROJECT_ID
 
 async function init(){
     console.log("Executing script.js")
+    publishLog("BUILD Started.....")
 
     const outDirPath = path.join(__dirname, "output")
 
@@ -24,23 +35,28 @@ async function init(){
 
     p.stdout.on('data', function(data){
         console.log(data.toString())
+        publishLog(`BUILD LOG : ${data.toString()}`)
     })
 
     p.stderr.on('data', function(data){
         console.error(data.toString())
+        publishLog(`BUILD LOG : ${data.toString()}`)
     })
 
     p.on('error', function(err){
         console.error("Process error:", err)
+        publishLog(`BUILD FAILED : ${err}`)
     })
 
     p.on('close', async function(code){
         if (code !== 0) {
             console.error(`Build failed with exit code ${code}`)
+            publishLog(`BUILD FAILED : ${code}`)
             process.exit(code)
         }
 
         console.log("build complete")
+        publishLog("BUILD COMPLETED.....")
 
         const candidateDirs = ['dist', 'build', 'out', '.next']
         let distFolderPath = null
@@ -67,6 +83,7 @@ async function init(){
             if (fs.lstatSync(filePath).isDirectory()) continue;
 
             console.log("UPLOADING....", filePath)
+            publishLog(`UPLOADING..... ${filePath}`)
 
             const command = new PutObjectCommand({
                 Bucket: process.env.BUCKET_NAME,
@@ -77,6 +94,7 @@ async function init(){
 
             await s3Client.send(command)
             console.log("UPLOADED....", filePath)
+            publishLog(`UPLOADED..... ${filePath}`)
 
             // If .next build, also ensure root index.html and _next/ assets are mapped
             if (distFolderPath.endsWith('.next')) {
@@ -100,6 +118,7 @@ async function init(){
         }
 
         console.log("deployment complete")
+        publishLog("DEPLOYMENT COMPLETED.....")
     })
 }
 
