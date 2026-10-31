@@ -78,6 +78,25 @@ async function init(){
             await s3Client.send(command)
             console.log("UPLOADED....", filePath)
 
+            // If .next build, also ensure root index.html and _next/ assets are mapped
+            if (distFolderPath.endsWith('.next')) {
+                if (file.startsWith('static/')) {
+                    await s3Client.send(new PutObjectCommand({
+                        Bucket: process.env.BUCKET_NAME,
+                        Key: `__output/${PROJECT_ID}/_next/${file}`,
+                        Body: fs.createReadStream(filePath),
+                        ContentType: mime.lookup(filePath) || 'application/octet-stream'
+                    }))
+                }
+                if (file === 'server/app/index.html' || file === 'server/pages/index.html') {
+                    await s3Client.send(new PutObjectCommand({
+                        Bucket: process.env.BUCKET_NAME,
+                        Key: `__output/${PROJECT_ID}/index.html`,
+                        Body: fs.createReadStream(filePath),
+                        ContentType: 'text/html'
+                    }))
+                }
+            }
         }
 
         console.log("deployment complete")
