@@ -38,6 +38,23 @@ app.post('/project',async (req,res)=>{
             }
         },
 
+        overrides:{
+            containerOverrides:[
+                {
+                    name:'Main',
+                    environment:[
+                        {name:'GIT_REPOSITORY_URL',value:github},
+                        {name:'PROJECT_SLUG',value:projectSlug},
+                        {name:'AWS_REGION',value:'us-east-1'},
+                        {name:'AWS_SECRET_ACCESS_KEY',value:process.env.AWS_SECRET_ACCESS_KEY},
+                        {name:'AWS_ACCESS_KEY_ID',value:process.env.AWS_ACCESS_KEY_ID},
+                        {name:'AWS_SESSION_TOKEN',value:process.env.AWS_SESSION_TOKEN},
+                        {name:'AWS_DEFAULT_REGION',value:process.env.AWS_DEFAULT_REGION},
+                    ]
+
+                }
+            ]
+        }
 
     })
 
