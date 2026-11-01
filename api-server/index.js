@@ -1,6 +1,24 @@
 const express = require('express')
 const {generateSlug} = require(`random-word-slugs`)
 const {ECSClient, RunTaskCommand, Cluster$} = require('@aws-sdk/client-ecs')
+const {Server} = require('socket.io')
+
+const io = new Server({
+    cors:{
+        origin:"*"
+    }
+})
+
+io.on("connection", (socket)=>{
+    socket.on( 'subscribe', channel=>{
+        socket.join(channel),
+        socket.emit("message", `Joined ${channel}`)
+    })
+})
+
+io.listen(9001, ()=>{
+    console.log("Socket Server is running....")
+})
 
 const app = express();
 const PORT = 9000;
