@@ -1,0 +1,43 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DeploymentStatus {
+  QUEUE
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  NOT_STARTED
+}
+
+model Projects {
+  id            String       @id @default(uuid())
+  name          String
+  gitURL        String       @map("git_url")
+  subDomain     String       @map("subdomain")
+  customDomains String?      @map("custom_domains")
+  Deployment    Deployment[]
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @map("updated_at")
+}
+
+model Deployment {
+  id String @id @default(uuid())
+
+  project Projects @relation(fields: [projectId], references: [id])
+
+  projectId String @map("project_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @map("updated_at")
+}

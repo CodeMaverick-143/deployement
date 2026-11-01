@@ -24,6 +24,7 @@ const s3Client = new S3Client({
 })
 
 const PROJECT_ID = process.env.PROJECT_ID
+const DEPLOYMENT_ID = process.env.DEPLOYMENT_ID
 
 async function init(){
     console.log("Executing script.js")

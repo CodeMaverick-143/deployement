@@ -3,6 +3,8 @@ const {generateSlug} = require(`random-word-slugs`)
 const {ECSClient, RunTaskCommand, Cluster$} = require('@aws-sdk/client-ecs')
 const {Server} = require('socket.io')
 const Redis = require('ioredis')
+const {z} = require('zod')
+const { PrismaClient } = require('@prisma/client')
 
 const subscriber = new Redis(process.env.REDIS_URL)
 
@@ -23,10 +25,15 @@ io.listen(9001, ()=>{
     console.log("Socket Server is running....")
 })
 
+
+const prisma = new PrismaClient()
+
 const app = express();
 const PORT = 9000;
 
 app.use(express.json())
+
+
 
 const ecsClient = new ECSClient({ 
     credentials:{
@@ -42,9 +49,54 @@ const config = {
     TASK:process.env.TASK
 }
 
-app.post('/project',async (req,res)=>{
-    const {github} = req.body
+
+app.post('/project', async(req,res)=>{
+    const schema = z.object({
+        gitURL:z.string(),
+        name:z.string()
+    })
+    const safeParseResult = schema.safeParse(req.body)
+    if(!safeParseResult.success){
+        return res.status(400).json({success:false})
+    }
+    
+    const {gitURL,name} = req.body
+    const project = await prisma.projects.create({
+        data:{
+            gitURL,
+            name,
+            subDomain:generateSlug()
+        }
+    })
+
+    return res.json({status:'success', data:{project}})
+
+
+
+
+})
+
+app.post('/deploy',async (req,res)=>{
+    const {github, projectId} = req.body
     const projectSlug = generateSlug()
+
+    const project = await prisma.projects.findUnique({
+        where : {id : projectId}
+    })
+
+    if(!project) return res.status(404).json({error : "Project Not Found"})
+
+    const deployment = await prisma.deployment.create({
+        data:{
+            project:{connect:{
+                id:projectId
+            }},
+            status:'QUEUED'
+            
+        }
+    })
+    
+
 
     const command = new RunTaskCommand({
         cluster : config.CLUSTER,
@@ -71,6 +123,11 @@ app.post('/project',async (req,res)=>{
                         {name:'AWS_ACCESS_KEY_ID',value:process.env.AWS_ACCESS_KEY_ID},
                         {name:'AWS_SESSION_TOKEN',value:process.env.AWS_SESSION_TOKEN},
                         {name:'AWS_DEFAULT_REGION',value:process.env.AWS_DEFAULT_REGION},
+                        {name:'REDIS_URL',value:process.env.REDIS_URL},
+                        {name:'DATABASE_URL',value:process.env.DATABASE_URL},
+                        {name:'DEPLOYMENT_ID',value:deployment.id},
+                        {name:'PROJECT_ID',value:projectId},
+                        {name:'DEPLOYJMENT_ID',value:deployment.id}
                     ]
 
                 }

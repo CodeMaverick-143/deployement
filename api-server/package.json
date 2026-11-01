@@ -11,10 +11,13 @@
   "description": "",
   "dependencies": {
     "@aws-sdk/client-ecs": "^3.1161.0",
+    "@prisma/client": "^6.19.3",
     "express": "^5.3.0",
     "ioredis": "^6.0.0",
+    "prisma": "^6.19.3",
     "random-word-slugs": "^0.1.7",
     "socket.io": "^4.8.4",
-    "socketio": "^1.0.0"
+    "socketio": "^1.0.0",
+    "zod": "^4.6.7"
   }
 }
