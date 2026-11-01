@@ -1,0 +1,55 @@
+const express = require('express')
+const {generateSlug} = require(`random-word-slugs`)
+const {ECSClient, RunTaskCommand, Cluster$} = require('@aws-sdk/client-ecs')
+
+const app = express();
+const PORT = 9000;
+
+app.use(express.json())
+
+const ecsClient = new ECSClient({ 
+    credentials:{
+        accessKeyId:process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey:process.env.AWS_SECRET_ACCESS_KEY,
+        sessionToken:process.env.AWS_SESSION_TOKEN,
+        region:process.env.AWS_REGION
+    }
+})
+
+const config = {
+    CLUSTER:process.env.CLUSTER,
+    TASK:process.env.TASK
+}
+
+app.post('/project',async (req,res)=>{
+    const {github} = req.body
+    const projectSlug = generateSlug()
+
+    const command = new RunTaskCommand({
+        cluster : config.CLUSTER,
+        taskDefinition: config.TASK,
+        launchType: 'FARGATE',
+        count:1,
+        networkConfiguration: {
+            awsvpcConfiguration: {
+                subnets:['subnet-00e7da54b8c7f3ef9','subnet-04298afe887b4a949','subnet-087174d565f5caf3e'],
+                securityGroups:['sg-0d83738c740320f7f'],
+                assignPublicIp: true
+            }
+        },
+
+
+    })
+
+    await ecsClient.send(command);
+
+    return res.json({status:'queued', data:{projectSlug, url: `http://${projectSlug}.localhost:8000`}})
+
+    
+})
+
+
+app.listen(PORT, ()=>{
+    console.log("API-SERVICE is running....")
+})
+
