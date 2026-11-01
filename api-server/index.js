@@ -2,6 +2,9 @@ const express = require('express')
 const {generateSlug} = require(`random-word-slugs`)
 const {ECSClient, RunTaskCommand, Cluster$} = require('@aws-sdk/client-ecs')
 const {Server} = require('socket.io')
+const Redis = require('ioredis')
+
+const subscriber = new Redis(process.env.REDIS_URL)
 
 const io = new Server({
     cors:{
@@ -83,6 +86,15 @@ app.post('/project',async (req,res)=>{
     
 })
 
+function initRedisSubscribe(){
+    console.log('Subscribed to logs......')
+    subscriber.psubscribe(`log:${projectSlug}`)
+    subscriber.on('pmessage', (pattern, channel, message)=>{
+        io.to(channel).emit('message', message)
+    })
+}
+
+initRedisSubscribe();
 
 app.listen(PORT, ()=>{
     console.log("API-SERVICE is running....")
