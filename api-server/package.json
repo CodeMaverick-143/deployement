@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@aws-sdk/client-ecs": "^3.1161.0",
+    "@clickhouse/client": "^1.24.1",
     "@prisma/client": "^6.19.3",
     "express": "^5.3.0",
     "ioredis": "^6.0.0",

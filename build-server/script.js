@@ -5,11 +5,7 @@ const mime = require('mime-types')
 const Redis = require('ioredis')
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3")
 
-const publisher = new Redis(
-    process.env.REDIS_URL?.startsWith("redis")
-        ? process.env.REDIS_URL
-        : `rediss://default:${process.env.REDIS_TOKEN}@${process.env.REDIS_URL ? process.env.REDIS_URL.replace(/^https?:\/\//, "") : ""}:6379`
-)
+
 
 function publishLog(log){
     publisher.publish(`log:${PROJECT_ID}`, JSON.stringify({log}))
@@ -26,38 +22,59 @@ const s3Client = new S3Client({
 const PROJECT_ID = process.env.PROJECT_ID
 const DEPLOYMENT_ID = process.env.DEPLOYMENT_ID
 
+const kafka = new Kafka({
+    clientId : `docker-build-server-${DEPLOYMENT_ID}`,
+    brokers : ["kafka-196ac367-deployment.c.aivencloud.com:27898"],
+    ssl:{
+        ca: [fs.readFileSync(path.join(__dirname,"kafka.pem"),'utf8')]
+    },
+})
+
+
+const producer = kafka.producer()
+
+async function publishLog(log){
+    await producer.send({topic:`container:log:${PROJECT_ID}`,messages:[{key:'log',value:JSON.stringify({PROJECT_ID,DEPLOYMENT_ID,log})}]})
+}
+
+
+
+
 async function init(){
+
+    await producer.connect()
+
     console.log("Executing script.js")
-    publishLog("BUILD Started.....")
+    await publishLog("BUILD Started.....")
 
     const outDirPath = path.join(__dirname, "output")
 
     const p = exec(`cd ${outDirPath} && npm install --legacy-peer-deps && npm run build`)
 
-    p.stdout.on('data', function(data){
+    p.stdout.on('data', async function(data){
         console.log(data.toString())
-        publishLog(`BUILD LOG : ${data.toString()}`)
+        await publishLog(`BUILD LOG : ${data.toString()}`)
     })
 
-    p.stderr.on('data', function(data){
+    p.stderr.on('data',async function(data){
         console.error(data.toString())
-        publishLog(`BUILD LOG : ${data.toString()}`)
+        await publishLog(`BUILD LOG : ${data.toString()}`)
     })
 
-    p.on('error', function(err){
+    p.on('error', async function(err){
         console.error("Process error:", err)
-        publishLog(`BUILD FAILED : ${err}`)
+        await publishLog(`BUILD FAILED : ${err}`)
     })
 
     p.on('close', async function(code){
         if (code !== 0) {
             console.error(`Build failed with exit code ${code}`)
-            publishLog(`BUILD FAILED : ${code}`)
+            await publishLog(`BUILD FAILED : ${code}`)
             process.exit(code)
         }
 
         console.log("build complete")
-        publishLog("BUILD COMPLETED.....")
+        await publishLog("BUILD COMPLETED.....")
 
         const candidateDirs = ['dist', 'build', 'out', '.next']
         let distFolderPath = null
@@ -84,7 +101,7 @@ async function init(){
             if (fs.lstatSync(filePath).isDirectory()) continue;
 
             console.log("UPLOADING....", filePath)
-            publishLog(`UPLOADING..... ${filePath}`)
+            await publishLog(`UPLOADING..... ${filePath}`)
 
             const command = new PutObjectCommand({
                 Bucket: process.env.BUCKET_NAME,
@@ -95,7 +112,7 @@ async function init(){
 
             await s3Client.send(command)
             console.log("UPLOADED....", filePath)
-            publishLog(`UPLOADED..... ${filePath}`)
+            await publishLog(`UPLOADED..... ${filePath}`)
 
             // If .next build, also ensure root index.html and _next/ assets are mapped
             if (distFolderPath.endsWith('.next')) {
@@ -119,7 +136,7 @@ async function init(){
         }
 
         console.log("deployment complete")
-        publishLog("DEPLOYMENT COMPLETED.....")
+        await publishLog("DEPLOYMENT COMPLETED.....")
     })
 }
 
