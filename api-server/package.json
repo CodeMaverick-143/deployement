@@ -1,24 +1,34 @@
 {
   "name": "api-server",
   "version": "1.0.0",
+  "description": "REST + Socket.IO API: creates projects, queues ECS build tasks, consumes build logs from Kafka into ClickHouse",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
-  "keywords": [],
-  "author": "",
+  "author": "CodeMaverick-143",
   "license": "ISC",
-  "description": "",
+  "engines": {
+    "node": ">=20.12"
+  },
   "dependencies": {
-    "@aws-sdk/client-ecs": "^3.1161.0",
-    "@clickhouse/client": "^1.24.1",
-    "@prisma/client": "^6.19.3",
-    "express": "^5.3.0",
-    "ioredis": "^6.0.0",
-    "prisma": "^6.19.3",
+    "@aws-sdk/client-ecs": "^3.511.0",
+    "@clickhouse/client": "^0.2.9",
+    "@prisma/client": "^5.9.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "kafkajs": "^2.2.4",
     "random-word-slugs": "^0.1.7",
-    "socket.io": "^4.8.4",
-    "socketio": "^1.0.0",
-    "zod": "^4.6.7"
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "prisma": "^5.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   }
 }

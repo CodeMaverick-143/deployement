@@ -1,16 +1,56 @@
-# Dependencies
+# ---------------------------------------------------------------
+# Dependencies & build output
+# ---------------------------------------------------------------
 node_modules/
+dist/
+build/
+out/
+.next/
+build-server/output/
+api-server/generated/
 
-# Environment / secrets
+# ---------------------------------------------------------------
+# Environment files / secrets  (only *.example files are committed)
+# ---------------------------------------------------------------
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
+*.local
 
+# Certificates, keys & credential files
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+credentials
+credentials.json
+service-account*.json
+secrets.json
+.aws/
+.npmrc
+
+# ---------------------------------------------------------------
 # Logs
+# ---------------------------------------------------------------
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
+# ---------------------------------------------------------------
 # OS / editor
+# ---------------------------------------------------------------
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
+*.swp

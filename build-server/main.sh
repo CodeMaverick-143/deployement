@@ -1,11 +1,10 @@
 #!/bin/bash
+set -e
 
-export GIT_REPOSITORY_URL="$GIT_REPOSITORY_URL"
-export PROJECT_ID="$PROJECT_ID"
-export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
-export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
-export AWS_REGION="$AWS_REGION"
-export BUCKET_NAME="$BUCKET_NAME"
+if [ -z "$GIT_REPOSITORY_URL" ]; then
+    echo "GIT_REPOSITORY_URL is not set" >&2
+    exit 1
+fi
 
 git clone "$GIT_REPOSITORY_URL" /home/app/output
 
